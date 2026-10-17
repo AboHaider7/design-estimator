@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبة تقييم وتدقيق التصاميم الخاصة - AboHaider.H</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --admin-bg: #fef3c7;
+            --admin-border: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; padding: 20px; }
+        .container { max-width: 750px; margin: 0 auto; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 30px; position: relative; }
+        
+        /* زر دخول المدير المطور والمرتفع فوق كل الطبقات */
+        .admin-lock-btn { 
+            position: absolute; 
+            top: 15px; 
+            left: 15px; 
+            background: #cbd5e1; 
+            color: #0f172a;
+            border: 1px solid #94a3b8; 
+            padding: 6px 12px; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            font-weight: bold;
+            cursor: pointer; 
+            z-index: 9999; 
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .admin-lock-btn:hover { background: #94a3b8; color: white; }
+
+        /* النافذة المنبثقة لكلمة السر */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: white; padding: 25px; border-radius: 12px; max-width: 350px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-card h3 { margin-bottom: 15px; font-size: 18px; color: var(--text-main); }
+        .modal-card input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: 6px; text-align: center; font-size: 16px; }
+        .modal-btns { display: flex; gap: 10px; justify-content: center; }
+        .btn-confirm { background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-cancel { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        /* لوحة تحكم الآدمن */
+        .admin-panel { display: none; background: var(--admin-bg); border: 2px dashed var(--admin-border); border-radius: 10px; padding: 20px; margin-bottom: 25px; margin-top: 15px; }
+        .admin-panel.active { display: block; }
+        .admin-title { font-weight: bold; color: #92400e; margin-bottom: 12px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 15px; }
+        .admin-grid div { display: flex; flex-direction: column; }
+        .admin-grid label { font-size: 12px; color: #78350f; margin-bottom: 4px; }
+        .admin-grid input, .admin-grid select { padding: 6px 8px; border: 1px solid #fcd34d; border-radius: 6px; font-weight: bold; }
+
+        h1 { text-align: center; color: var(--primary-color); margin-bottom: 8px; font-size: 24px; margin-top: 10px; }
+        .subtitle { text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+        .section-title { font-size: 15px; font-weight: bold; margin: 20px 0 10px 0; color: var(--text-main); border-bottom: 2px solid var(--border-color); padding-bottom: 5px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+        select, input[type="text"], textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #fff; }
+        select:focus, input:focus, textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-weight: normal; cursor: pointer; }
+        .checkbox-group input { width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer; }
+        
+        .summary-card { background: #f1f5f9; border-radius: 10px; padding: 20px; margin-top: 25px; text-align: center; }
+        .price-display { font-size: 32px; font-weight: bold; color: var(--primary-color); margin: 10px 0; }
+        .btn-whatsapp { display: block; width: 100%; background: #22c55e; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; margin-top: 15px; text-align: center; text-decoration: none; }
+        .btn-whatsapp:hover { background: #16a34a; }
+        .btn-admin-save { background: #d97706; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .note { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- زر دخول المدير الصريح والواضح -->
+    <button class="admin-lock-btn" onclick="openPassModal()">🔑 دخول المدير</button>
+
+    <h1>حاسبة تقييم وتسعير التصاميم الخاصة</h1>
+    <div class="subtitle">أبو حيدر (AboHaider.H) - إدارة وتقييم هندسي دقيق</div>
+
+    <!-- نافذة طلب كلمة السر -->
+    <div id="passModal" class="modal-overlay">
+        <div class="modal-card">
+            <h3>🔑 دخول لوحة المدير</h3>
+            <input type="password" id="modalPasswordInput" placeholder="أدخل كلمة السر">
+            <div class="modal-btns">
+                <button class="btn-confirm" onclick="verifyPassword()">دخول</button>
+                <button class="btn-cancel" onclick="closePassModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- لوحة الآدمن المحمية -->
+    <div id="adminPanel" class="admin-panel">
+        <div class="admin-title">
+            <span>⚙️ لوحة إعدادات المدير (AboHaider.H)</span>
+            <div>
+                <button type="button" class="btn-admin-save" onclick="saveAdminSettings()">حفظ الإعدادات</button>
+                <button type="button" style="background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="closeAdminPanel()">إغلاق</button>
+            </div>
+        </div>
+        <div class="admin-grid">
+            <div>
+                <label>سعر التعديل الأساسي:</label>
+                <input type="number" id="cfg_baseModPrice">
+            </div>
+            <div>
+                <label>سعر التصميم الجديد:</label>
+                <input type="number" id="cfg_baseNewPrice">
+            </div>
+            <div>
+                <label>تكلفة تجاويف المغناطيس / NFC:</label>
+                <input type="number" id="cfg_magnetCost">
+            </div>
+            <div>
+                <label>تكلفة المخطوطات والـ SVG:</label>
+                <input type="number" id="cfg_typographyCost">
+            </div>
+            <div>
+                <label>مضاعف الحصرية (Exclusive):</label>
+                <input type="number" step="0.1" id="cfg_exclusiveMultiplier">
+            </div>
+            <div>
+                <label>رقم الواتساب (بالصيغة الدولية):</label>
+                <input type="text" id="cfg_phoneNumber" placeholder="966500000000">
+            </div>
+            <div>
+                <label>تغيير كلمة سر المدير:</label>
+                <input type="password" id="cfg_adminPassword" placeholder="كلمة السر الجديدة">
+            </div>
+            <div>
+                <label>العملة المعتمدة:</label>
+                <select id="cfg_currency">
+                    <option value="ريال سعودي">SAR - ريال سعودي</option>
+                    <option value="درهم إماراتي">AED - درهم إماراتي</option>
+                    <option value="دولار أمريكي">USD - دولار أمريكي</option>
+                    <option value="دينار كويتي">KWD - دينار كويتي</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <form id="estimatorForm">
+        <!-- 1. نوع التصميم -->
+        <div class="form-group">
+            <label for="designType">طبيعة الطلب الأساسية:</label>
+            <select id="designType" onchange="calculatePrice()">
+                <option value="mod">تعديل على تصميم قائم (إضافة نصوص/مغناطيس/تفريغ)</option>
+                <option value="new">تصميم جديد بالكامل من الصفر (OpenSCAD Parametric)</option>
+            </select>
+        </div>
+
+        <!-- 2. التعقيد الهندسي -->
+        <div class="form-group">
+            <label for="complexity">التعقيد الهندسي والبرمجي:</label>
+            <select id="complexity" onchange="calculatePrice()">
+                <option value="1">بسيط (علب، حوامل، أشكال هندسية أساسية)</option>
+                <option value="1.5">متوسط (سماحيات دقيقة، تجاويف متعددة، تركيب)</option>
+                <option value="2">معقد جداً (آليات ميكانيكية متداخلة، قطاعات مجزأة)</option>
+            </select>
+        </div>
+
+        <!-- 3. الإضافات والتقنيات -->
+        <div class="form-group">
+            <label class="section-title">الإضافات التقنية والتفصيلية:</label>
+            <label class="checkbox-group">
+                <input type="checkbox" id="magnetAddon" onchange="calculatePrice()"> إدراج تجاويف مقرات المغناطيس أو شريحة NFC
+            </label>
+            <label class="checkbox-group">
+                <input type="checkbox" id="typographyAddon" onchange="calculatePrice()"> معالجة وإدراج مخطوطة عربية / شعار (SVG)
+            </label>
+        </div>
+
+        <!-- 4. حقوق الاستخدام -->
+        <div class="form-group">
+            <label for="licensing">حقوق الاستخدام والنشر:</label>
+            <select id="licensing" onchange="calculatePrice()">
+                <option value="public">نشر عام (يُسمح بنشر المودل على MakerWorld)</option>
+                <option value="exclusive">تصميم خاص حصري (استخدام خاص للعميل فقط)</option>
+            </select>
+        </div>
+
+        <!-- 5. تفاصيل العميل -->
+        <div class="form-group">
+            <label for="clientNotes">وصف مختصر للطلب والمتطلبات الخاصة:</label>
+            <textarea id="clientNotes" rows="3" placeholder="اكتب التفاصيل والمقاسات المطلوبة هنا..." oninput="saveToLocalStorage()"></textarea>
+        </div>
+
+        <!-- ملخص السعر والإرسال -->
+        <div class="summary-card">
+            <div style="font-size: 14px; color: var(--text-muted);">التكلفة التقديرية المتوقعة:</div>
+            <div class="price-display" id="totalPrice">0 ريال سعودي</div>
+            <div style="font-size: 13px; color: var(--text-muted);" id="estimateTime">الوقت المتوقع للإنجاز: 1 - 2 يوم عمل</div>
+            
+            <a href="#" id="whatsappBtn" class="btn-whatsapp" onclick="sendToWhatsApp(event)">إرسال الطلب والتأكيد عبر الواتساب</a>
+        </div>
+    </form>
+    
+    <div class="note">نظام آمن ومستقل 100% - جميع البيانات محفوظة محلياً بدون طرف ثالث.</div>
+</div>
+
+<script>
+    let config = {
+        baseModPrice: 50,
+        baseNewPrice: 150,
+        magnetCost: 30,
+        typographyCost: 45,
+        exclusiveMultiplier: 1.8,
+        phoneNumber: "966500000000",
+        currency: "ريال سعودي",
+        adminPassword: "123" // كلمة السر الافتراضية
+    };
+
+    function loadAdminConfig() {
+        const savedConfig = localStorage.getItem('abohaider_admin_config');
+        if (savedConfig) {
+            config = { ...config, ...JSON.parse(savedConfig) };
+        }
+        document.getElementById('cfg_baseModPrice').value = config.baseModPrice;
+        document.getElementById('cfg_baseNewPrice').value = config.baseNewPrice;
+        document.getElementById('cfg_magnetCost').value = config.magnetCost;
+        document.getElementById('cfg_typographyCost').value = config.typographyCost;
+        document.getElementById('cfg_exclusiveMultiplier').value = config.exclusiveMultiplier;
+        document.getElementById('cfg_phoneNumber').value = config.phoneNumber;
+        document.getElementById('cfg_currency').value = config.currency;
+        document.getElementById('cfg_adminPassword').value = config.adminPassword;
+    }
+
+    function openPassModal() {
+        document.getElementById('modalPasswordInput').value = '';
+        document.getElementById('passModal').classList.add('active');
+    }
+
+    function closePassModal() {
+        document.getElementById('passModal').classList.remove('active');
+    }
+
+    function verifyPassword() {
+        const inputPass = document.getElementById('modalPasswordInput').value;
+        if (inputPass === config.adminPassword) {
+            closePassModal();
+            document.getElementById('adminPanel').classList.add('active');
+        } else {
+            alert("كلمة السر غير صحيحة!");
+        }
+    }
+
+    function closeAdminPanel() {
+        document.getElementById('adminPanel').classList.remove('active');
+    }
+
+    function saveAdminSettings() {
+        config.baseModPrice = parseFloat(document.getElementById('cfg_baseModPrice').value) || 50;
+        config.baseNewPrice = parseFloat(document.getElementById('cfg_baseNewPrice').value) || 150;
+        config.magnetCost = parseFloat(document.getElementById('cfg_magnetCost').value) || 30;
+        config.typographyCost = parseFloat(document.getElementById('cfg_typographyCost').value) || 45;
+        config.exclusiveMultiplier = parseFloat(document.getElementById('cfg_exclusiveMultiplier').value) || 1.8;
+        config.phoneNumber = document.getElementById('cfg_phoneNumber').value || "966500000000";
+        config.currency = document.getElementById('cfg_currency').value;
+        config.adminPassword = document.getElementById('cfg_adminPassword').value || "123";
+
+        localStorage.setItem('abohaider_admin_config', JSON.stringify(config));
+        alert("تم حفظ وتحديث الإعدادات بنجاح!");
+        calculatePrice();
+        closeAdminPanel();
+    }
+
+    function calculatePrice() {
+        let designType = document.getElementById('designType').value;
+        let complexity = parseFloat(document.getElementById('complexity').value);
+        let hasMagnet = document.getElementById('magnetAddon').checked;
+        let hasTypography = document.getElementById('typographyAddon').checked;
+        let licensing = document.getElementById('licensing').value;
+
+        let base = (designType === 'new') ? config.baseNewPrice : config.baseModPrice;
+        let subtotal = base * complexity;
+
+        if (hasMagnet) subtotal += config.magnetCost;
+        if (hasTypography) subtotal += config.typographyCost;
+
+        if (licensing === 'exclusive') {
+            subtotal *= config.exclusiveMultiplier;
+        }
+
+        let finalPrice = Math.round(subtotal / 5) * 5;
+        document.getElementById('totalPrice').innerText = finalPrice + " " + config.currency;
+        
+        saveToLocalStorage();
+    }
+
+    function saveToLocalStorage() {
+        const formData = {
+            designType: document.getElementById('designType').value,
+            complexity: document.getElementById('complexity').value,
+            magnetAddon: document.getElementById('magnetAddon').checked,
+            typographyAddon: document.getElementById('typographyAddon').checked,
+            licensing: document.getElementById('licensing').value,
+            clientNotes: document.getElementById('clientNotes').value
+        };
+        localStorage.setItem('abohaider_estimator_draft', JSON.stringify(formData));
+    }
+
+    function loadFromLocalStorage() {
+        loadAdminConfig();
+
+        const saved = localStorage.getItem('abohaider_estimator_draft');
+        if (saved) {
+            const data = JSON.parse(saved);
+            document.getElementById('designType').value = data.designType || 'mod';
+            document.getElementById('complexity').value = data.complexity || '1';
+            document.getElementById('magnetAddon').checked = data.magnetAddon || false;
+            document.getElementById('typographyAddon').checked = data.typographyAddon || false;
+            document.getElementById('licensing').value = data.licensing || 'public';
+            document.getElementById('clientNotes').value = data.clientNotes || '';
+        }
+        calculatePrice();
+    }
+
+    function sendToWhatsApp(e) {
+        e.preventDefault();
+        
+        let designType = document.getElementById('designType').options[document.getElementById('designType').selectedIndex].text;
+        let complexity = document.getElementById('complexity').options[document.getElementById('complexity').selectedIndex].text;
+        let hasMagnet = document.getElementById('magnetAddon').checked ? "نعم" : "لا";
+        let hasTypography = document.getElementById('typographyAddon').checked ? "نعم" : "لا";
+        let licensing = document.getElementById('licensing').options[document.getElementById('licensing').selectedIndex].text;
+        let notes = document.getElementById('clientNotes').value || "لا توجد ملاحظات إضافية";
+        let totalPrice = document.getElementById('totalPrice').innerText;
+
+        let message = `مرحباً أبو حيدر، أود طلب تصميم جديد بالمواصفات التالية:\n\n` +
+                      `🔹 طبيعة الطلب: ${designType}\n` +
+                      `🔹 التعقيد الهندسي: ${complexity}\n` +
+                      `🔹 إضافة مغناطيس/NFC: ${hasMagnet}\n` +
+                      `🔹 إضافة مخطوطة/SVG: ${hasTypography}\n` +
+                      `🔹 حقوق الاستخدام: ${licensing}\n` +
+                      `🔹 السعر التقديري بالحاسبة: ${totalPrice}\n\n` +
+                      `📝 ملاحظات العميل:\n${notes}`;
+
+        let url = `https://wa.me/${config.phoneNumber}?text=` + encodeURIComponent(message);
+        window.open(url, '_blank');
+    }
+
+    window.onload = loadFromLocalStorage;
+</script>
+
+</body>
+</html>
